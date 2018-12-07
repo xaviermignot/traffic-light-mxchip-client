@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+# Vs Code
+.vscode
+.iotworkbenchproject
+azureconfig.json
+
+# Arduino stuff
+.build
+*.ino.*
