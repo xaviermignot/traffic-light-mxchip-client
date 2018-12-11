@@ -33,12 +33,32 @@ void initIotHub()
   hasIotHub = DevKitMQTTClient_Init(true);
   if (hasIotHub)
   {
+    DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
     Screen.print(2, "IoT Hub Ok !");
   }
   else
   {
     Screen.print(2, "IoT Hub Ko :(");
   }
+}
+
+static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsigned char *payLoad, int length)
+{
+  char *temp = (char *)malloc(length + 1);
+  if (temp == NULL)
+  {
+    return;
+  }
+
+  memcpy(temp, payLoad, length);
+  temp[length] = '\0';
+  parseTwinMessage(temp);
+  free(temp);
+}
+
+void parseTwinMessage(const char *message)
+{
+  //TODO: Parse twins and take action
 }
 
 void setup()
@@ -73,5 +93,6 @@ void loop()
     return;
   }
 
+  DevKitMQTTClient_Check();
   printTrafficLightState(Off);
 }
