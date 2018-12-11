@@ -60,9 +60,9 @@ void setup()
 
 void printTrafficLightState(TrafficLightState state)
 {
-  Screen.print(1, state == Red ? "Red: On" : "Red : Off");
-  Screen.print(2, state == Orange ? "Orange: On" : "Orange : Off");
-  Screen.print(3, state == Green ? "Green: On" : "Green : Off");
+  Screen.print(1, state == Red ? "Red: On" : "Red: Off");
+  Screen.print(2, state == Orange ? "Orange: On" : "Orange: Off");
+  Screen.print(3, state == Green ? "Green: On" : "Green: Off");
 }
 
 void loop()
