@@ -12,7 +12,7 @@ enum TrafficLightState
   Red
 };
 
-void initWifi()
+static void InitWifi()
 {
   Screen.print(1, "Wifi...");
 
@@ -27,7 +27,7 @@ void initWifi()
   }
 }
 
-void initIotHub()
+static void InitIotHub()
 {
   Screen.print(2, "IoT Hub...");
   hasIotHub = DevKitMQTTClient_Init(true);
@@ -65,13 +65,13 @@ void setup()
 {
   Screen.print("Traffic light !");
 
-  initWifi();
+  InitWifi();
   if (!hasWifi)
   {
     return;
   }
 
-  initIotHub();
+  InitIotHub();
   if (!hasIotHub)
   {
     return;
@@ -95,4 +95,6 @@ void loop()
 
   DevKitMQTTClient_Check();
   printTrafficLightState(Off);
+
+  delay(1000);
 }
