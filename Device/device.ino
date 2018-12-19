@@ -12,6 +12,8 @@ enum TrafficLightState
   Red
 };
 
+static TrafficLightState currentLightState = Off;
+
 static void InitWifi()
 {
   Screen.print(1, "Wifi...");
@@ -63,7 +65,11 @@ void parseTwinMessage(const char *message)
 
 void setup()
 {
+  Screen.init();
   Screen.print("Traffic light !");
+
+  pinMode(USER_BUTTON_A, INPUT);
+  pinMode(USER_BUTTON_B, INPUT);
 
   InitWifi();
   if (!hasWifi)
@@ -85,6 +91,21 @@ void printTrafficLightState(TrafficLightState state)
   Screen.print(3, state == Green ? "Green: On" : "Green: Off");
 }
 
+TrafficLightState getNextState()
+{
+  switch (currentLightState)
+  {
+  case Off:
+    return Red;
+  case Red:
+    return Orange;
+  case Orange:
+    return Green;
+  case Green:
+    return Off;
+  }
+}
+
 void loop()
 {
   if (!hasWifi || !hasIotHub)
@@ -93,8 +114,14 @@ void loop()
     return;
   }
 
-  DevKitMQTTClient_Check();
-  printTrafficLightState(Off);
+  if (digitalRead(USER_BUTTON_B) == LOW)
+  {
+    currentLightState = getNextState();
+  }
 
-  delay(1000);
+  DevKitMQTTClient_Check();
+
+  printTrafficLightState(currentLightState);
+
+  delay(100);
 }
