@@ -13,6 +13,46 @@ enum TrafficLightState
 };
 
 static TrafficLightState currentLightState = Off;
+static bool lightStateChanged = false;
+
+
+void setup()
+{
+  Screen.init();
+  Screen.print("Traffic light !");
+
+  pinMode(USER_BUTTON_A, INPUT);
+  pinMode(USER_BUTTON_B, INPUT);
+
+  InitWifi();
+  if (!hasWifi)
+  {
+    return;
+  }
+
+  InitIotHub();
+  if (!hasIotHub)
+  {
+    return;
+  }
+}
+
+void loop()
+{
+  if (!hasWifi || !hasIotHub)
+  {
+    Screen.print(3, "Hit reset :-/");
+    return;
+  }
+
+  checkButtons();
+
+  DevKitMQTTClient_Check();
+
+  printTrafficLightState(currentLightState);
+
+  delay(100);
+}
 
 static void InitWifi()
 {
@@ -63,32 +103,20 @@ void parseTwinMessage(const char *message)
   //TODO: Parse twins and take action
 }
 
-void setup()
+void checkButtons()
 {
-  Screen.init();
-  Screen.print("Traffic light !");
-
-  pinMode(USER_BUTTON_A, INPUT);
-  pinMode(USER_BUTTON_B, INPUT);
-
-  InitWifi();
-  if (!hasWifi)
+  if (digitalRead(USER_BUTTON_B) == LOW)
   {
-    return;
+    if (!lightStateChanged)
+    {
+      currentLightState = getNextState();
+      lightStateChanged = true;
+    }
   }
-
-  InitIotHub();
-  if (!hasIotHub)
+  else
   {
-    return;
+    lightStateChanged = false;
   }
-}
-
-void printTrafficLightState(TrafficLightState state)
-{
-  Screen.print(1, state == Red ? "Red: On" : "Red: Off");
-  Screen.print(2, state == Orange ? "Orange: On" : "Orange: Off");
-  Screen.print(3, state == Green ? "Green: On" : "Green: Off");
 }
 
 TrafficLightState getNextState()
@@ -106,22 +134,9 @@ TrafficLightState getNextState()
   }
 }
 
-void loop()
+void printTrafficLightState(TrafficLightState state)
 {
-  if (!hasWifi || !hasIotHub)
-  {
-    Screen.print(3, "Hit reset :-/");
-    return;
-  }
-
-  if (digitalRead(USER_BUTTON_B) == LOW)
-  {
-    currentLightState = getNextState();
-  }
-
-  DevKitMQTTClient_Check();
-
-  printTrafficLightState(currentLightState);
-
-  delay(100);
+  Screen.print(1, state == Red ? "Red: On" : "Red: Off");
+  Screen.print(2, state == Orange ? "Orange: On" : "Orange: Off");
+  Screen.print(3, state == Green ? "Green: On" : "Green: Off");
 }
