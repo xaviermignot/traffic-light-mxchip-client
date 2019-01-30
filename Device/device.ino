@@ -1,5 +1,6 @@
 #include "AZ3166WiFi.h"
 #include "DevKitMQTTClient.h"
+#include "parson.h"
 
 static bool hasWifi = false;
 static bool hasIotHub = false;
@@ -14,7 +15,6 @@ enum TrafficLightState
 
 static TrafficLightState currentLightState = Off;
 static bool lightStateChanged = false;
-
 
 void setup()
 {
@@ -94,13 +94,44 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
 
   memcpy(temp, payLoad, length);
   temp[length] = '\0';
-  parseTwinMessage(temp);
+  JSON_Object *desiredTrafficLight = getTrafficLightFromDeviceTwin(updateState, temp);
+
+  const char *desiredLight = json_object_get_string(desiredTrafficLight, "state");
+  currentLightState = parseState(desiredLight);
+
   free(temp);
 }
 
-void parseTwinMessage(const char *message)
+JSON_Object *getTrafficLightFromDeviceTwin(DEVICE_TWIN_UPDATE_STATE updateState, const char *message)
 {
-  //TODO: Parse twins and take action
+  JSON_Value *root_value;
+  root_value = json_parse_string(message);
+  if (json_value_get_type(root_value) != JSONObject)
+  {
+    if (root_value != NULL)
+    {
+      json_value_free(root_value);
+    }
+    LogError("parse %s failed", message);
+    return NULL;
+  }
+  JSON_Object *root_object = json_value_get_object(root_value);
+  JSON_Object *traffic_light_object;
+
+  if (updateState == DEVICE_TWIN_UPDATE_COMPLETE)
+  {
+    JSON_Object *desired_object = json_object_get_object(root_object, "desired");
+    if (desired_object != NULL)
+    {
+      traffic_light_object = json_object_dotget_object(desired_object, "trafficLight");
+    }
+  }
+  else
+  {
+    traffic_light_object = json_object_dotget_object(root_object, "trafficLight");
+  }
+  json_value_free(root_value);
+  return traffic_light_object;
 }
 
 void checkButtons()
@@ -132,6 +163,23 @@ TrafficLightState getNextState()
   case Green:
     return Off;
   }
+}
+
+TrafficLightState parseState(const char *state)
+{
+  if (strcmp(state, "Green") == 0)
+  {
+    return Green;
+  }
+  if (strcmp(state, "Red") == 0)
+  {
+    return Red;
+  }
+  if (strcmp(state, "Orange") == 0)
+  {
+    return Orange;
+  }
+  return Off;
 }
 
 void printTrafficLightState(TrafficLightState state)
