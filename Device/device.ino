@@ -142,11 +142,35 @@ void checkButtons()
     {
       currentLightState = getNextState();
       lightStateChanged = true;
+      reportState();
     }
   }
   else
   {
     lightStateChanged = false;
+  }
+}
+
+void reportState()
+{
+  char *stateStr = stateToString(currentLightState);
+  char twins[500];
+  snprintf(twins, 500, "{\"trafficLight\": { \"state\": \"%s\"} }", stateStr);
+  DevKitMQTTClient_ReportState(twins);
+}
+
+char *stateToString(TrafficLightState state)
+{
+  switch (state)
+  {
+  case Off:
+    return "Off";
+  case Red:
+    return "Red";
+  case Orange:
+    return "Orange";
+  case Green:
+    return "Green";
   }
 }
 
