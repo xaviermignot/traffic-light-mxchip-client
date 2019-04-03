@@ -1,5 +1,5 @@
-#include "AZ3166WiFi.h"
 #include "DevKitMQTTClient.h"
+#include "IoT_DevKit_HW.h"
 #include "parson.h"
 
 static bool hasWifi = false;
@@ -20,9 +20,6 @@ void setup()
 {
   Screen.init();
   Screen.print("Traffic light !");
-
-  pinMode(USER_BUTTON_A, INPUT);
-  pinMode(USER_BUTTON_B, INPUT);
 
   InitWifi();
   if (!hasWifi)
@@ -58,7 +55,7 @@ static void InitWifi()
 {
   Screen.print(1, "Wifi...");
 
-  hasWifi = WiFi.begin() == WL_CONNECTED;
+  hasWifi = initIoTDevKit(false) == 0;
   if (hasWifi)
   {
     Screen.print(1, "Wifi Ok !");
@@ -136,7 +133,7 @@ JSON_Object *getTrafficLightFromDeviceTwin(DEVICE_TWIN_UPDATE_STATE updateState,
 
 void checkButtons()
 {
-  if (digitalRead(USER_BUTTON_B) == LOW)
+  if (getButtonBState())
   {
     if (!lightStateChanged)
     {
@@ -153,13 +150,15 @@ void checkButtons()
 
 void reportState()
 {
-  char *stateStr = stateToString(currentLightState);
-  char twins[500];
-  snprintf(twins, 500, "{\"trafficLight\": { \"state\": \"%s\"} }", stateStr);
-  DevKitMQTTClient_ReportState(twins);
+  String reportedTwin = "{\"trafficLight\": { \"state\": \"" + stateToString(currentLightState) + "\" } }";
+
+  if (!DevKitMQTTClient_ReportState(reportedTwin.c_str()))
+  {
+    Serial.println(F("Reporting twin failed !"));
+  }
 }
 
-char *stateToString(TrafficLightState state)
+String stateToString(TrafficLightState state)
 {
   switch (state)
   {
