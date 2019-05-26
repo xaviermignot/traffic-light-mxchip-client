@@ -107,8 +107,9 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     }
     else
     {
-      Serial.println(F("Device Twin callback, report state..."));
-      reportState();
+      // TODO: Fix update of reported state on twin callback
+      // Serial.println(F("Device Twin callback, report state..."));
+      // reportState();
     }
   }
 
