@@ -6,6 +6,7 @@ static bool hasWifi = false;
 static bool hasIotHub = false;
 
 static bool hasBeenInitializedWithDeviceTwin = false;
+static bool shouldReportState = false;
 
 enum TrafficLightState
 {
@@ -49,6 +50,12 @@ void loop()
   DevKitMQTTClient_Check();
 
   printTrafficLightState(currentLightState);
+
+  if (shouldReportState)
+  {
+    reportState();
+    shouldReportState = false;
+  }
 
   delay(100);
 }
@@ -107,9 +114,8 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     }
     else
     {
-      // TODO: Fix update of reported state on twin callback
-      // Serial.println(F("Device Twin callback, report state..."));
-      // reportState();
+      Serial.println(F("Device Twin callback, report state on next loop..."));
+      shouldReportState = true;
     }
   }
 
@@ -169,7 +175,7 @@ void reportState()
 {
   String reportedTwin = "{\"trafficLight\": { \"state\": \"" + stateToString(currentLightState) + "\" } }";
   Serial.println(reportedTwin);
-  
+
   if (DevKitMQTTClient_ReportState(reportedTwin.c_str()))
   {
     Serial.println(F("Reporting twin success !"));
