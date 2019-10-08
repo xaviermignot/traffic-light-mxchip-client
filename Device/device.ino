@@ -1,3 +1,4 @@
+#include "AZ3166WiFi.h"
 #include "DevKitMQTTClient.h"
 #include "IoT_DevKit_HW.h"
 #include "parson.h"
@@ -64,7 +65,7 @@ static void InitWifi()
 {
   Screen.print(1, "Wifi...");
 
-  hasWifi = initIoTDevKit(false) == 0;
+  hasWifi = WiFi.begin() == WL_CONNECTED;
   if (hasWifi)
   {
     Screen.print(1, "Wifi Ok !");
