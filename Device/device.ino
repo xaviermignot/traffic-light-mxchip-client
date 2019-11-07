@@ -1,7 +1,8 @@
-#include "AZ3166WiFi.h"
-#include "DevKitMQTTClient.h"
-#include "IoT_DevKit_HW.h"
-#include "parson.h"
+#include <AZ3166WiFi.h>
+#include <DevKitMQTTClient.h>
+#include <IoT_DevKit_HW.h>
+#include <parson.h>
+
 #include "TrafficLight.h"
 
 static bool hasWifi = false;
@@ -75,7 +76,7 @@ static void InitIotHub()
   hasIotHub = DevKitMQTTClient_Init(true);
   if (hasIotHub)
   {
-    // DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
+    DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
     Screen.print(2, "IoT Hub Ok !");
   }
   else
@@ -84,69 +85,33 @@ static void InitIotHub()
   }
 }
 
-// static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsigned char *payLoad, int length)
-// {
-//   char *temp = (char *)malloc(length + 1);
-//   if (temp == NULL)
-//   {
-//     return;
-//   }
+static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsigned char *payLoad, int length)
+{
+  char *temp = (char *)malloc(length + 1);
+  if (temp == NULL)
+  {
+    return;
+  }
 
-//   memcpy(temp, payLoad, length);
-//   temp[length] = '\0';
-//   JSON_Object *desiredTrafficLight = getTrafficLightFromDeviceTwin(updateState, temp);
+  TrafficLightState desiredLightState = GetFromDeviceTwin(temp);
 
-//   const char *desiredLight = json_object_get_string(desiredTrafficLight, "state");
-//   const TrafficLightState desiredLightState = ParseState(desiredLight);
-//   if (desiredLightState != trafficLight.CurrentState)
-//   {
-//     trafficLight.CurrentState = desiredLightState;
-//     if (!hasBeenInitializedWithDeviceTwin)
-//     {
-//       Serial.println(F("First Device Twin callback"));
-//       hasBeenInitializedWithDeviceTwin = true;
-//     }
-//     else
-//     {
-//       Serial.println(F("Device Twin callback, report state on next loop..."));
-//       shouldReportState = true;
-//     }
-//   }
+  if (desiredLightState != trafficLight.CurrentState)
+  {
+    trafficLight.CurrentState = desiredLightState;
+    if (!hasBeenInitializedWithDeviceTwin)
+    {
+      Serial.println(F("First Device Twin callback"));
+      hasBeenInitializedWithDeviceTwin = true;
+    }
+    else
+    {
+      Serial.println(F("Device Twin callback, report state on next loop..."));
+      shouldReportState = true;
+    }
+  }
 
-//   free(temp);
-// }
-
-// JSON_Object *getTrafficLightFromDeviceTwin(DEVICE_TWIN_UPDATE_STATE updateState, const char *message)
-// {
-//   JSON_Value *root_value;
-//   root_value = json_parse_string(message);
-//   if (json_value_get_type(root_value) != JSONObject)
-//   {
-//     if (root_value != NULL)
-//     {
-//       json_value_free(root_value);
-//     }
-//     LogError("parse %s failed", message);
-//     return NULL;
-//   }
-//   JSON_Object *root_object = json_value_get_object(root_value);
-//   JSON_Object *traffic_light_object;
-
-//   if (updateState == DEVICE_TWIN_UPDATE_COMPLETE)
-//   {
-//     JSON_Object *desired_object = json_object_get_object(root_object, "desired");
-//     if (desired_object != NULL)
-//     {
-//       traffic_light_object = json_object_dotget_object(desired_object, "trafficLight");
-//     }
-//   }
-//   else
-//   {
-//     traffic_light_object = json_object_dotget_object(root_object, "trafficLight");
-//   }
-//   json_value_free(root_value);
-//   return traffic_light_object;
-// }
+  free(temp);
+}
 
 void checkButtons()
 {
