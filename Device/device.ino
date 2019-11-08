@@ -93,7 +93,7 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     return;
   }
 
-  TrafficLightState desiredLightState = GetFromDeviceTwin(temp);
+  TrafficLightState desiredLightState = GetFromDeviceTwin(temp, updateState);
 
   if (desiredLightState != trafficLight.CurrentState)
   {
