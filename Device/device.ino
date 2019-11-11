@@ -1,40 +1,45 @@
+#include <Arduino.h>
 #include <AZ3166WiFi.h>
+#include <AzureIotHub.h>
 #include <DevKitMQTTClient.h>
+#include <iothub_client_core_common.h>
 #include <IoT_DevKit_HW.h>
-#include <parson.h>
+#include <stdlib.h>
+#include <wiring.h>
 
+#include "DevKitInit.h"
 #include "TrafficLight.h"
 
-static bool hasWifi = false;
-static bool hasIotHub = false;
-
 static bool hasBeenInitializedWithDeviceTwin = false;
+
 static bool shouldReportState = false;
 static bool lightStateChanged = false;
 
-static TrafficLight trafficLight;
+TrafficLight trafficLight;
+DevKitInit devKitInit;
 
 void setup()
 {
-  Screen.init();
-  Screen.print("Traffic light !");
+  devKitInit.Begin("Traffic light !");
 
-  InitWifi();
-  if (!hasWifi)
+  devKitInit.InitWifi();
+  if (!devKitInit.HasWifi)
   {
     return;
   }
 
-  InitIotHub();
-  if (!hasIotHub)
+  devKitInit.InitIotHub();
+
+  if (devKitInit.HasIotHub)
   {
-    return;
+    // DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
   }
+  // devKitInit.InitIotHub(DeviceTwinCallBack);
 }
 
 void loop()
 {
-  if (!hasWifi || !hasIotHub)
+  if (!devKitInit.HasWifi || !devKitInit.HasIotHub)
   {
     Screen.print(3, "Hit reset :-/");
     return;
@@ -55,36 +60,6 @@ void loop()
   delay(100);
 }
 
-static void InitWifi()
-{
-  Screen.print(1, "Wifi...");
-
-  hasWifi = WiFi.begin() == WL_CONNECTED;
-  if (hasWifi)
-  {
-    Screen.print(1, "Wifi Ok !");
-  }
-  else
-  {
-    Screen.print(1, "Wifi Ko :(");
-  }
-}
-
-static void InitIotHub()
-{
-  Screen.print(2, "IoT Hub...");
-  hasIotHub = DevKitMQTTClient_Init(true);
-  if (hasIotHub)
-  {
-    DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
-    Screen.print(2, "IoT Hub Ok !");
-  }
-  else
-  {
-    Screen.print(2, "IoT Hub Ko :(");
-  }
-}
-
 static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsigned char *payLoad, int length)
 {
   char *temp = (char *)malloc(length + 1);
@@ -93,7 +68,10 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     return;
   }
 
-  TrafficLightState desiredLightState = GetFromDeviceTwin(temp, updateState);
+  memcpy(temp, payLoad, length);
+  temp[length] = '\0';
+
+  TrafficLightState desiredLightState = GetFromDeviceTwin(temp, updateState == DEVICE_TWIN_UPDATE_STATE::DEVICE_TWIN_UPDATE_COMPLETE);
 
   if (desiredLightState != trafficLight.CurrentState)
   {
