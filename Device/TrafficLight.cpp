@@ -1,5 +1,4 @@
 #include <DevKitMQTTClient.h>
-#include <iothub_client_core_common.h>
 #include <parson.h>
 #include <string.h>
 #include <WString.h>
@@ -38,6 +37,26 @@ String StateToString(TrafficLightState state)
     }
 }
 
+TrafficLightMode ParseMode(const char *mode)
+{
+    if (strcmp(mode, "Flashing") == 0)
+    {
+        return Flashing;
+    }
+    return Static;
+}
+
+String ModeToString(TrafficLightMode mode)
+{
+    switch (mode)
+    {
+    case Flashing:
+        return "Flashing";
+    case Static:
+        return "Static";
+    }
+}
+
 TrafficLight::TrafficLight()
 {
     CurrentState = Off;
@@ -63,6 +82,19 @@ void TrafficLight::MoveToNextState()
     }
 }
 
+void TrafficLight::ChangeMode()
+{
+    switch (CurrentMode)
+    {
+    case Flashing:
+        CurrentMode = Static;
+        break;
+    case Static:
+        CurrentMode = Flashing;
+        break;
+    }
+}
+
 void TrafficLight::ApplyMode()
 {
     if (CurrentMode == Flashing)
@@ -71,36 +103,35 @@ void TrafficLight::ApplyMode()
     }
 }
 
-TrafficLightState GetFromDeviceTwin(char *deviceTwin, DEVICE_TWIN_UPDATE_STATE updateState)
+bool TrafficLight::ApplyDeviceTwin(JSON_Object *desiredTwin)
 {
-    JSON_Value *root_value;
-    root_value = json_parse_string(deviceTwin);
-    if (json_value_get_type(root_value) != JSONObject)
+    if (desiredTwin == NULL)
     {
-        if (root_value != NULL)
-        {
-            json_value_free(root_value);
-        }
-        return Off;
+        return false;
     }
 
-    JSON_Object *root_object = json_value_get_object(root_value);
-    JSON_Object *desiredTrafficLight;
-
-    if (updateState == DEVICE_TWIN_UPDATE_STATE::DEVICE_TWIN_UPDATE_COMPLETE)
+    const char *desiredStateJson = json_object_get_string(desiredTwin, "state");
+    bool hasChanged = false;
+    if (desiredStateJson != NULL)
     {
-        JSON_Object *desired_object = json_object_get_object(root_object, "desired");
-        if (desired_object != NULL)
+        TrafficLightState desiredState = ParseState(desiredStateJson);
+        if (desiredState != CurrentState)
         {
-            desiredTrafficLight = json_object_dotget_object(desired_object, "trafficLight");
+            CurrentState = desiredState;
+            hasChanged = true;
         }
     }
-    else
+
+    const char *desiredModeJson = json_object_get_string(desiredTwin, "mode");
+    if (desiredModeJson != NULL)
     {
-        desiredTrafficLight = json_object_get_object(root_object, "trafficLight");
+        TrafficLightMode desiredMode = ParseMode(desiredModeJson);
+        if (desiredMode != CurrentMode)
+        {
+            CurrentMode = desiredMode;
+            hasChanged = true;
+        }
     }
 
-    json_value_free(root_value);
-    const char *desiredLight = json_object_get_string(desiredTrafficLight, "state");
-    return ParseState(desiredLight);
+    return hasChanged;
 }

@@ -9,7 +9,7 @@ static bool hasWifi = false;
 static bool hasIotHub = false;
 
 static bool hasBeenInitializedWithDeviceTwin = false;
-static bool shouldReportState = false;
+static bool shouldReportTwin = false;
 static bool shouldChangeMode = false;
 static bool shouldChangeState = false;
 
@@ -48,10 +48,10 @@ void loop()
   trafficLight.ApplyMode();
   printTrafficLightState();
 
-  if (shouldReportState)
+  if (shouldReportTwin)
   {
-    reportState();
-    shouldReportState = false;
+    reportTwin();
+    shouldReportTwin = false;
   }
 
   delay(100);
@@ -95,11 +95,9 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     return;
   }
 
-  TrafficLightState desiredLightState = GetFromDeviceTwin(temp, updateState);
-
-  if (desiredLightState != trafficLight.CurrentState)
+  JSON_Object *trafficLightJson = ExtractTrafficLightFromTwin(temp, updateState);
+  if (trafficLight.ApplyDeviceTwin(trafficLightJson))
   {
-    trafficLight.CurrentState = desiredLightState;
     if (!hasBeenInitializedWithDeviceTwin)
     {
       Serial.println(F("First Device Twin callback"));
@@ -108,11 +106,44 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     else
     {
       Serial.println(F("Device Twin callback, report state on next loop..."));
-      shouldReportState = true;
+      shouldReportTwin = true;
     }
   }
 
   free(temp);
+}
+
+static JSON_Object *ExtractTrafficLightFromTwin(char *deviceTwin, DEVICE_TWIN_UPDATE_STATE updateState)
+{
+  JSON_Value *root_value;
+  root_value = json_parse_string(deviceTwin);
+  if (json_value_get_type(root_value) != JSONObject)
+  {
+    if (root_value != NULL)
+    {
+      json_value_free(root_value);
+    }
+    return NULL;
+  }
+
+  JSON_Object *root_object = json_value_get_object(root_value);
+  JSON_Object *desiredTrafficLight;
+
+  if (updateState == DEVICE_TWIN_UPDATE_STATE::DEVICE_TWIN_UPDATE_COMPLETE)
+  {
+    JSON_Object *desired_object = json_object_get_object(root_object, "desired");
+    if (desired_object != NULL)
+    {
+      desiredTrafficLight = json_object_dotget_object(desired_object, "trafficLight");
+    }
+  }
+  else
+  {
+    desiredTrafficLight = json_object_get_object(root_object, "trafficLight");
+  }
+
+  json_value_free(root_value);
+  return desiredTrafficLight;
 }
 
 void checkButtons()
@@ -127,15 +158,9 @@ void checkButtonA()
   {
     if (!shouldChangeMode)
     {
-      if (trafficLight.CurrentMode == Static)
-      {
-        trafficLight.CurrentMode = Flashing;
-      }
-      else
-      {
-        trafficLight.CurrentMode = Static;
-      }
+      trafficLight.ChangeMode();
       shouldChangeMode = true;
+      shouldReportTwin = true;
     }
   }
   else
@@ -152,7 +177,7 @@ void checkButtonB()
     {
       trafficLight.MoveToNextState();
       shouldChangeState = true;
-      shouldReportState = true;
+      shouldReportTwin = true;
     }
   }
   else
@@ -161,9 +186,9 @@ void checkButtonB()
   }
 }
 
-void reportState()
+void reportTwin()
 {
-  String reportedTwin = "{\"trafficLight\": { \"state\": \"" + StateToString(trafficLight.CurrentState) + "\" } }";
+  String reportedTwin = "{\"trafficLight\": { \"state\": \"" + StateToString(trafficLight.CurrentState) + "\", \"mode\": \"" + ModeToString(trafficLight.CurrentMode) + "\" } }";
   Serial.println(reportedTwin);
 
   if (DevKitMQTTClient_ReportState(reportedTwin.c_str()))
