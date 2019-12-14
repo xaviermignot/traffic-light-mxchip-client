@@ -1,4 +1,5 @@
 #include <DevKitMQTTClient.h>
+#include <iothub_client_core_common.h>
 #include <parson.h>
 #include <string.h>
 #include <WString.h>
@@ -61,7 +62,7 @@ void TrafficLight::MoveToNextState()
     }
 }
 
-TrafficLightState GetFromDeviceTwin(char *deviceTwin, bool isComplete)
+TrafficLightState GetFromDeviceTwin(char *deviceTwin, DEVICE_TWIN_UPDATE_STATE updateState)
 {
     JSON_Value *root_value;
     root_value = json_parse_string(deviceTwin);
@@ -77,7 +78,7 @@ TrafficLightState GetFromDeviceTwin(char *deviceTwin, bool isComplete)
     JSON_Object *root_object = json_value_get_object(root_value);
     JSON_Object *desiredTrafficLight;
 
-    if (isComplete)
+    if (updateState == DEVICE_TWIN_UPDATE_STATE::DEVICE_TWIN_UPDATE_COMPLETE)
     {
         JSON_Object *desired_object = json_object_get_object(root_object, "desired");
         if (desired_object != NULL)
