@@ -41,6 +41,7 @@ String StateToString(TrafficLightState state)
 TrafficLight::TrafficLight()
 {
     CurrentState = Off;
+    CurrentMode = Static;
 }
 
 void TrafficLight::MoveToNextState()
@@ -59,6 +60,14 @@ void TrafficLight::MoveToNextState()
     case Green:
         CurrentState = Off;
         break;
+    }
+}
+
+void TrafficLight::ApplyMode()
+{
+    if (CurrentMode == Flashing)
+    {
+        MoveToNextState();
     }
 }
 

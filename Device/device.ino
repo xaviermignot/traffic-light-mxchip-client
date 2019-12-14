@@ -10,7 +10,8 @@ static bool hasIotHub = false;
 
 static bool hasBeenInitializedWithDeviceTwin = false;
 static bool shouldReportState = false;
-static bool lightStateChanged = false;
+static bool shouldChangeMode = false;
+static bool shouldChangeState = false;
 
 static TrafficLight trafficLight;
 
@@ -44,6 +45,7 @@ void loop()
 
   DevKitMQTTClient_Check();
 
+  trafficLight.ApplyMode();
   printTrafficLightState();
 
   if (shouldReportState)
@@ -115,18 +117,47 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
 
 void checkButtons()
 {
-  if (getButtonBState())
+  checkButtonA();
+  checkButtonB();
+}
+
+void checkButtonA()
+{
+  if (getButtonAState())
   {
-    if (!lightStateChanged)
+    if (!shouldChangeMode)
     {
-      trafficLight.MoveToNextState();
-      lightStateChanged = true;
-      reportState();
+      if (trafficLight.CurrentMode == Static)
+      {
+        trafficLight.CurrentMode = Flashing;
+      }
+      else
+      {
+        trafficLight.CurrentMode = Static;
+      }
+      shouldChangeMode = true;
     }
   }
   else
   {
-    lightStateChanged = false;
+    shouldChangeMode = false;
+  }
+}
+
+void checkButtonB()
+{
+  if (getButtonBState())
+  {
+    if (!shouldChangeState)
+    {
+      trafficLight.MoveToNextState();
+      shouldChangeState = true;
+      shouldReportState = true;
+    }
+  }
+  else
+  {
+    shouldChangeState = false;
   }
 }
 

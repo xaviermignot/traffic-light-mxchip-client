@@ -12,6 +12,12 @@ enum TrafficLightState
     Red
 };
 
+enum TrafficLightMode
+{
+    Static,
+    Flashing
+};
+
 TrafficLightState ParseState(const char *state);
 String StateToString(TrafficLightState state);
 TrafficLightState GetFromDeviceTwin(char *deviceTwin, DEVICE_TWIN_UPDATE_STATE updateState);
@@ -21,7 +27,9 @@ class TrafficLight
 public:
     TrafficLight();
     TrafficLightState CurrentState;
+    TrafficLightMode CurrentMode;
     void MoveToNextState();
+    void ApplyMode();
 };
 
 #endif
