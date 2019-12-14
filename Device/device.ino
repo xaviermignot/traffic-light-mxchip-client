@@ -1,24 +1,18 @@
-#include "AZ3166WiFi.h"
-#include "DevKitMQTTClient.h"
-#include "IoT_DevKit_HW.h"
-#include "parson.h"
+#include <AZ3166WiFi.h>
+#include <DevKitMQTTClient.h>
+#include <IoT_DevKit_HW.h>
+#include <parson.h>
+
+#include "TrafficLight.h"
 
 static bool hasWifi = false;
 static bool hasIotHub = false;
 
 static bool hasBeenInitializedWithDeviceTwin = false;
 static bool shouldReportState = false;
-
-enum TrafficLightState
-{
-  Off,
-  Green,
-  Orange,
-  Red
-};
-
-static TrafficLightState currentLightState = Off;
 static bool lightStateChanged = false;
+
+static TrafficLight trafficLight;
 
 void setup()
 {
@@ -50,7 +44,7 @@ void loop()
 
   DevKitMQTTClient_Check();
 
-  printTrafficLightState(currentLightState);
+  printTrafficLightState();
 
   if (shouldReportState)
   {
@@ -99,15 +93,11 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     return;
   }
 
-  memcpy(temp, payLoad, length);
-  temp[length] = '\0';
-  JSON_Object *desiredTrafficLight = getTrafficLightFromDeviceTwin(updateState, temp);
+  TrafficLightState desiredLightState = GetFromDeviceTwin(temp, updateState);
 
-  const char *desiredLight = json_object_get_string(desiredTrafficLight, "state");
-  const TrafficLightState desiredLightState = parseState(desiredLight);
-  if (desiredLightState != currentLightState)
+  if (desiredLightState != trafficLight.CurrentState)
   {
-    currentLightState = desiredLightState;
+    trafficLight.CurrentState = desiredLightState;
     if (!hasBeenInitializedWithDeviceTwin)
     {
       Serial.println(F("First Device Twin callback"));
@@ -123,45 +113,13 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
   free(temp);
 }
 
-JSON_Object *getTrafficLightFromDeviceTwin(DEVICE_TWIN_UPDATE_STATE updateState, const char *message)
-{
-  JSON_Value *root_value;
-  root_value = json_parse_string(message);
-  if (json_value_get_type(root_value) != JSONObject)
-  {
-    if (root_value != NULL)
-    {
-      json_value_free(root_value);
-    }
-    LogError("parse %s failed", message);
-    return NULL;
-  }
-  JSON_Object *root_object = json_value_get_object(root_value);
-  JSON_Object *traffic_light_object;
-
-  if (updateState == DEVICE_TWIN_UPDATE_COMPLETE)
-  {
-    JSON_Object *desired_object = json_object_get_object(root_object, "desired");
-    if (desired_object != NULL)
-    {
-      traffic_light_object = json_object_dotget_object(desired_object, "trafficLight");
-    }
-  }
-  else
-  {
-    traffic_light_object = json_object_dotget_object(root_object, "trafficLight");
-  }
-  json_value_free(root_value);
-  return traffic_light_object;
-}
-
 void checkButtons()
 {
   if (getButtonBState())
   {
     if (!lightStateChanged)
     {
-      currentLightState = getNextState();
+      trafficLight.MoveToNextState();
       lightStateChanged = true;
       reportState();
     }
@@ -174,7 +132,7 @@ void checkButtons()
 
 void reportState()
 {
-  String reportedTwin = "{\"trafficLight\": { \"state\": \"" + stateToString(currentLightState) + "\" } }";
+  String reportedTwin = "{\"trafficLight\": { \"state\": \"" + StateToString(trafficLight.CurrentState) + "\" } }";
   Serial.println(reportedTwin);
 
   if (DevKitMQTTClient_ReportState(reportedTwin.c_str()))
@@ -187,56 +145,9 @@ void reportState()
   }
 }
 
-String stateToString(TrafficLightState state)
+void printTrafficLightState()
 {
-  switch (state)
-  {
-  case Off:
-    return "Off";
-  case Red:
-    return "Red";
-  case Orange:
-    return "Orange";
-  case Green:
-    return "Green";
-  }
-}
-
-TrafficLightState getNextState()
-{
-  switch (currentLightState)
-  {
-  case Off:
-    return Red;
-  case Red:
-    return Orange;
-  case Orange:
-    return Green;
-  case Green:
-    return Off;
-  }
-}
-
-TrafficLightState parseState(const char *state)
-{
-  if (strcmp(state, "Green") == 0)
-  {
-    return Green;
-  }
-  if (strcmp(state, "Red") == 0)
-  {
-    return Red;
-  }
-  if (strcmp(state, "Orange") == 0)
-  {
-    return Orange;
-  }
-  return Off;
-}
-
-void printTrafficLightState(TrafficLightState state)
-{
-  Screen.print(1, state == Red ? "Red: On" : "Red: Off");
-  Screen.print(2, state == Orange ? "Orange: On" : "Orange: Off");
-  Screen.print(3, state == Green ? "Green: On" : "Green: Off");
+  Screen.print(1, trafficLight.CurrentState == Red ? "Red: On" : "Red: Off");
+  Screen.print(2, trafficLight.CurrentState == Orange ? "Orange: On" : "Orange: Off");
+  Screen.print(3, trafficLight.CurrentState == Green ? "Green: On" : "Green: Off");
 }
