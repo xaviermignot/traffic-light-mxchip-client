@@ -13,6 +13,8 @@ static bool shouldReportTwin = false;
 static bool shouldChangeMode = false;
 static bool shouldChangeState = false;
 
+const int userLedPin = 45;
+
 static TrafficLight trafficLight;
 
 void setup()
@@ -79,6 +81,7 @@ static void InitIotHub()
   if (hasIotHub)
   {
     DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
+    DevKitMQTTClient_SetDeviceMethodCallback(DeviceMethodCallback);
     Screen.print(2, "IoT Hub Ok !");
   }
   else
@@ -144,6 +147,34 @@ static JSON_Object *ExtractTrafficLightFromTwin(char *deviceTwin, DEVICE_TWIN_UP
 
   json_value_free(root_value);
   return desiredTrafficLight;
+}
+
+static int DeviceMethodCallback(const char *methodName, const unsigned char *payload, int size, unsigned char **response, int *response_size)
+{
+  const char *responseMessage = "\"Successfully invoke device method\"";
+  int result = 200;
+
+  if (strcmp(methodName, "start") == 0)
+  {
+    Serial.println(F("Turn user led on from direct method"));
+    digitalWrite(userLedPin, HIGH);
+  }
+  else if (strcmp(methodName, "stop") == 0)
+  {
+    Serial.println(F("Turn user led off from direct method"));
+    digitalWrite(userLedPin, LOW);
+  }
+  else
+  {
+    Serial.println(F("Unkown direct method call"));
+    responseMessage = "\"No method found\"";
+    result = 404;
+  }
+
+  *response_size = strlen(responseMessage) + 1;
+  *response = (unsigned char *)strdup(responseMessage);
+
+  return result;
 }
 
 void checkButtons()
