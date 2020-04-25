@@ -13,7 +13,9 @@ static bool shouldReportTwin = false;
 static bool shouldChangeMode = false;
 static bool shouldChangeState = false;
 
-const int userLedPin = 45;
+const int redLightPin = 29;
+const int orangeLightPin = 30;
+const int greenLightPin = 31;
 
 static TrafficLight trafficLight;
 
@@ -21,6 +23,8 @@ void setup()
 {
   Screen.init();
   Screen.print("Traffic light !");
+
+  InitPins();
 
   InitWifi();
   if (!hasWifi)
@@ -72,6 +76,13 @@ static void InitWifi()
   {
     Screen.print(1, "Wifi Ko :(");
   }
+}
+
+static void InitPins()
+{
+  pinMode(redLightPin, OUTPUT);
+  pinMode(orangeLightPin, OUTPUT);
+  pinMode(greenLightPin, OUTPUT);
 }
 
 static void InitIotHub()
@@ -243,7 +254,16 @@ void reportTwin()
 
 void printTrafficLightState()
 {
-  Screen.print(1, trafficLight.CurrentState == Red || trafficLight.CurrentState == All ? "Red: On" : "Red: Off");
-  Screen.print(2, trafficLight.CurrentState == Orange || trafficLight.CurrentState == All ? "Orange: On" : "Orange: Off");
-  Screen.print(3, trafficLight.CurrentState == Green || trafficLight.CurrentState == All ? "Green: On" : "Green: Off");
+  printLight(Red, redLightPin, 1);
+  printLight(Orange, orangeLightPin, 2);
+  printLight(Green, greenLightPin, 3);
+}
+
+void printLight(TrafficLightState lightToCheck, const int pinNumber, unsigned int lineNumber)
+{
+  bool lightValue = trafficLight.CurrentState == lightToCheck || trafficLight.CurrentState == All;
+  digitalWrite(pinNumber, lightValue ? HIGH : LOW);
+  char buffer[20];
+  sprintf(buffer, "%s: %s", StateToString(lightToCheck).c_str(), lightValue ? "On" : "Off");
+  Screen.print(lineNumber, buffer);
 }
