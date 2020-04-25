@@ -154,15 +154,10 @@ static int DeviceMethodCallback(const char *methodName, const unsigned char *pay
   const char *responseMessage = "\"Successfully invoke device method\"";
   int result = 200;
 
-  if (strcmp(methodName, "start") == 0)
+  if (strcmp(methodName, "flash") == 0)
   {
-    Serial.println(F("Turn user led on from direct method"));
-    digitalWrite(userLedPin, HIGH);
-  }
-  else if (strcmp(methodName, "stop") == 0)
-  {
-    Serial.println(F("Turn user led off from direct method"));
-    digitalWrite(userLedPin, LOW);
+    Serial.println(F("flash direct method invoked"));
+    DoFlash();
   }
   else
   {
@@ -175,6 +170,20 @@ static int DeviceMethodCallback(const char *methodName, const unsigned char *pay
   *response = (unsigned char *)strdup(responseMessage);
 
   return result;
+}
+
+static void DoFlash()
+{
+  TrafficLightState currentState = trafficLight.CurrentState;
+  for (int i = 0; i < 5; i++)
+  {
+    trafficLight.CurrentState = Off;
+    printTrafficLightState();
+    delay(500);
+    trafficLight.CurrentState = currentState;
+    printTrafficLightState();
+    delay(500);
+  }
 }
 
 void checkButtons()
