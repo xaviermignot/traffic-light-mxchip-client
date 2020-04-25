@@ -19,6 +19,10 @@ TrafficLightState ParseState(const char *state)
     {
         return Orange;
     }
+    if (strcmp(state, "All") == 0)
+    {
+        return All;
+    }
     return Off;
 }
 
@@ -34,6 +38,8 @@ String StateToString(TrafficLightState state)
         return "Orange";
     case Green:
         return "Green";
+    case All:
+        return "All";
     }
 }
 
@@ -77,6 +83,9 @@ void TrafficLight::MoveToNextState()
         CurrentState = Green;
         break;
     case Green:
+        CurrentState = Off;
+        break;
+    case All:
         CurrentState = Off;
         break;
     }

@@ -8,7 +8,8 @@ enum TrafficLightState
     Off,
     Green,
     Orange,
-    Red
+    Red,
+    All
 };
 
 enum TrafficLightMode

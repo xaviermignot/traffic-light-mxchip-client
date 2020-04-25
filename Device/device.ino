@@ -243,7 +243,7 @@ void reportTwin()
 
 void printTrafficLightState()
 {
-  Screen.print(1, trafficLight.CurrentState == Red ? "Red: On" : "Red: Off");
-  Screen.print(2, trafficLight.CurrentState == Orange ? "Orange: On" : "Orange: Off");
-  Screen.print(3, trafficLight.CurrentState == Green ? "Green: On" : "Green: Off");
+  Screen.print(1, trafficLight.CurrentState == Red || trafficLight.CurrentState == All ? "Red: On" : "Red: Off");
+  Screen.print(2, trafficLight.CurrentState == Orange || trafficLight.CurrentState == All ? "Orange: On" : "Orange: Off");
+  Screen.print(3, trafficLight.CurrentState == Green || trafficLight.CurrentState == All ? "Green: On" : "Green: Off");
 }
