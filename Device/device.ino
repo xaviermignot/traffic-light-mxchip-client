@@ -94,6 +94,7 @@ static void InitIotHub()
     DevKitMQTTClient_SetDeviceTwinCallback(DeviceTwinCallBack);
     DevKitMQTTClient_SetDeviceMethodCallback(DeviceMethodCallback);
     Screen.print(2, "IoT Hub Ok !");
+    turnOnUserLED();
   }
   else
   {
@@ -116,11 +117,12 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     {
       Serial.println(F("First Device Twin callback"));
       hasBeenInitializedWithDeviceTwin = true;
+      turnOffUserLED();
     }
     else
     {
       Serial.println(F("Device Twin callback, report state on next loop..."));
-      shouldReportTwin = true;
+      indicateTwinToReport();
     }
   }
 
@@ -197,6 +199,12 @@ static void DoFlash()
   }
 }
 
+void indicateTwinToReport()
+{
+  shouldReportTwin = true;
+  turnOnUserLED();
+}
+
 void checkButtons()
 {
   checkButtonA();
@@ -211,7 +219,7 @@ void checkButtonA()
     {
       trafficLight.ChangeMode();
       shouldChangeMode = true;
-      shouldReportTwin = true;
+      indicateTwinToReport();
     }
   }
   else
@@ -228,7 +236,7 @@ void checkButtonB()
     {
       trafficLight.MoveToNextState();
       shouldChangeState = true;
-      shouldReportTwin = true;
+      indicateTwinToReport();
     }
   }
   else
@@ -245,6 +253,7 @@ void reportTwin()
   if (DevKitMQTTClient_ReportState(reportedTwin.c_str()))
   {
     Serial.println(F("Reporting twin success !"));
+    turnOffUserLED();
   }
   else
   {
