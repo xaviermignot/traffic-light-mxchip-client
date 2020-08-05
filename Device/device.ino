@@ -110,17 +110,22 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
     return;
   }
 
-  JSON_Object *trafficLightJson = ExtractTrafficLightFromTwin(temp, updateState);
-  if (trafficLight.ApplyDeviceTwin(trafficLightJson))
+  JSON_Object *trafficLightJson;
+  if (!hasBeenInitializedWithDeviceTwin)
   {
-    if (!hasBeenInitializedWithDeviceTwin)
+    // Device twin is retrieved after device boot, initialize using last reported twin
+    Serial.println(F("First Device Twin callback"));
+    trafficLightJson = ExtractTrafficLightFromTwin(temp, updateState, true);
+    trafficLight.ApplyDeviceTwin(trafficLightJson);
+    hasBeenInitializedWithDeviceTwin = true;
+    turnOffUserLED();
+  }
+  else
+  {
+    trafficLightJson = ExtractTrafficLightFromTwin(temp, updateState, false);
+    if (trafficLight.ApplyDeviceTwin(trafficLightJson))
     {
-      Serial.println(F("First Device Twin callback"));
-      hasBeenInitializedWithDeviceTwin = true;
-      turnOffUserLED();
-    }
-    else
-    {
+      // Change from desired twin update has been applied, report the change
       Serial.println(F("Device Twin callback, report state on next loop..."));
       indicateTwinToReport();
     }
@@ -129,7 +134,7 @@ static void DeviceTwinCallBack(DEVICE_TWIN_UPDATE_STATE updateState, const unsig
   free(temp);
 }
 
-static JSON_Object *ExtractTrafficLightFromTwin(char *deviceTwin, DEVICE_TWIN_UPDATE_STATE updateState)
+static JSON_Object *ExtractTrafficLightFromTwin(char *deviceTwin, DEVICE_TWIN_UPDATE_STATE updateState, bool useReported)
 {
   JSON_Value *root_value;
   root_value = json_parse_string(deviceTwin);
@@ -143,23 +148,23 @@ static JSON_Object *ExtractTrafficLightFromTwin(char *deviceTwin, DEVICE_TWIN_UP
   }
 
   JSON_Object *root_object = json_value_get_object(root_value);
-  JSON_Object *desiredTrafficLight;
+  JSON_Object *trafficLightJson;
 
   if (updateState == DEVICE_TWIN_UPDATE_STATE::DEVICE_TWIN_UPDATE_COMPLETE)
   {
-    JSON_Object *desired_object = json_object_get_object(root_object, "desired");
+    JSON_Object *desired_object = json_object_get_object(root_object, useReported ? "reported" : "desired");
     if (desired_object != NULL)
     {
-      desiredTrafficLight = json_object_dotget_object(desired_object, "trafficLight");
+      trafficLightJson = json_object_dotget_object(desired_object, "trafficLight");
     }
   }
   else
   {
-    desiredTrafficLight = json_object_get_object(root_object, "trafficLight");
+    trafficLightJson = json_object_get_object(root_object, "trafficLight");
   }
 
   json_value_free(root_value);
-  return desiredTrafficLight;
+  return trafficLightJson;
 }
 
 static int DeviceMethodCallback(const char *methodName, const unsigned char *payload, int size, unsigned char **response, int *response_size)
