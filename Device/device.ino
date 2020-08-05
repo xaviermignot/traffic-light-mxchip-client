@@ -190,7 +190,7 @@ static void DoFlash()
   TrafficLightState currentState = trafficLight.CurrentState;
   for (int i = 0; i < 5; i++)
   {
-    trafficLight.CurrentState = Off;
+    trafficLight.CurrentState = currentState == Off ? All : Off;
     printTrafficLightState();
     delay(500);
     trafficLight.CurrentState = currentState;
