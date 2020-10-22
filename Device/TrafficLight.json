@@ -1,0 +1,65 @@
+{
+  "@context": "dtmi:dtdl:context;2",
+  "@id": "dtmi:com:example:TrafficLight;1",
+  "@type": "Interface",
+  "displayName": "TrafficLight",
+  "contents": [
+    {
+      "@type": "Telemetry",
+      "name": "temperature",
+      "schema": "double"
+    },
+    {
+      "@type": "Property",
+      "name": "state",
+      "schema": {
+        "@type": "Enum",
+        "valueSchema": "string",
+        "enumValues": [
+          {
+            "name": "Off",
+            "enumValue": "Off"
+          },
+          {
+            "name": "Green",
+            "enumValue": "Green"
+          },
+          {
+            "name": "Orange",
+            "enumValue": "Orange"
+          },
+          {
+            "name": "Red",
+            "enumValue": "Red"
+          },
+          {
+            "name": "All",
+            "enumValue": "All"
+          }
+        ]
+      }
+    },
+    {
+      "@type": "Property",
+      "name": "mode",
+      "schema": {
+        "@type": "Enum",
+        "valueSchema": "string",
+        "enumValues": [
+          {
+            "name": "Static",
+            "enumValue": "Static"
+          },
+          {
+            "name": "Flashing",
+            "enumValue": "Flashing"
+          }
+        ]
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "flash"
+    }
+  ]
+}
