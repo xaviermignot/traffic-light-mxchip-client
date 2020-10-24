@@ -52,7 +52,7 @@ void loop()
   DevKitMQTTClient_Check();
 
   trafficLight.ApplyMode();
-  printTrafficLightState();
+  applyTrafficLightState();
 
   if (shouldReportTwin)
   {
@@ -196,10 +196,10 @@ static void DoFlash()
   for (int i = 0; i < 5; i++)
   {
     trafficLight.CurrentState = currentState == Off ? All : Off;
-    printTrafficLightState();
+    applyTrafficLightState();
     delay(500);
     trafficLight.CurrentState = currentState;
-    printTrafficLightState();
+    applyTrafficLightState();
     delay(500);
   }
 }
@@ -266,18 +266,42 @@ void reportTwin()
   }
 }
 
-void printTrafficLightState()
+void applyTrafficLightState()
 {
-  printLight(Red, redLightPin, 1);
-  printLight(Orange, orangeLightPin, 2);
-  printLight(Green, greenLightPin, 3);
+  applyLight(Red, redLightPin, 1);
+  applyLight(Orange, orangeLightPin, 2);
+  applyLight(Green, greenLightPin, 3);
+
+  applyRgbLight();
 }
 
-void printLight(TrafficLightState lightToCheck, const int pinNumber, unsigned int lineNumber)
+void applyLight(TrafficLightState lightToCheck, const int pinNumber, unsigned int lineNumber)
 {
   bool lightValue = trafficLight.CurrentState == lightToCheck || trafficLight.CurrentState == All;
   digitalWrite(pinNumber, lightValue ? HIGH : LOW);
   char buffer[20];
   sprintf(buffer, "%s: %s", StateToString(lightToCheck).c_str(), lightValue ? "On" : "Off");
   Screen.print(lineNumber, buffer);
+}
+
+void applyRgbLight()
+{
+  switch (trafficLight.CurrentState)
+  {
+  case Red:
+    turnOnRGBLED(255, 0, 0);
+    break;
+  case Orange:
+    turnOnRGBLED(255, 127, 0);
+    break;
+  case Green:
+    turnOnRGBLED(0, 255, 0);
+    break;
+  case All:
+    turnOnRGBLED(255, 255, 255);
+    break;
+  default:
+    turnOffRGBLED();
+    break;
+  }
 }
